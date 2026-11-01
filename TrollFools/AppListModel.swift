@@ -51,6 +51,9 @@ final class AppListModel: ObservableObject {
     let selectorURL: URL?
     var isSelectorMode: Bool { selectorURL != nil }
 
+    // [Fork] UserDefaults key used to persist the selected scope.
+    static let activeScopeDefaultsKey = "AppListModel.activeScope"
+
     @Published var filter = FilterOptions()
     @Published var activeScope: Scope = .all
     @Published var activeScopeApps: OrderedDictionary<String, [App]> = [:]
@@ -77,11 +80,18 @@ final class AppListModel: ObservableObject {
 
         // [Fork] Restore the persisted filter state, except in selector mode
         // where only the full app list makes sense.
-        if !isSelectorMode,
-           let persistedValue = UserDefaults.standard
-           .object(forKey: FilterOptions.showPatchedOnlyDefaultsKey) as? Bool
-        {
-            filter.showPatchedOnly = persistedValue
+        if !isSelectorMode {
+            let defaults = UserDefaults.standard
+            if let persistedValue = defaults
+                .object(forKey: FilterOptions.showPatchedOnlyDefaultsKey) as? Bool
+            {
+                filter.showPatchedOnly = persistedValue
+            }
+            if let rawScope = defaults.object(forKey: Self.activeScopeDefaultsKey) as? Int,
+               let persistedScope = Scope(rawValue: rawScope)
+            {
+                activeScope = persistedScope
+            }
         }
 
         reload()
@@ -108,6 +118,20 @@ final class AppListModel: ObservableObject {
                 UserDefaults.standard.set(
                     showPatchedOnly,
                     forKey: FilterOptions.showPatchedOnlyDefaultsKey
+                )
+            }
+            .store(in: &cancellables)
+
+        // [Fork] Persist the selected scope so it survives relaunches.
+        $activeScope
+            .removeDuplicates()
+            .sink { [weak self] activeScope in
+                guard let self = self, !self.isSelectorMode else {
+                    return
+                }
+                UserDefaults.standard.set(
+                    activeScope.rawValue,
+                    forKey: Self.activeScopeDefaultsKey
                 )
             }
             .store(in: &cancellables)

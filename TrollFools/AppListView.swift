@@ -216,7 +216,9 @@ struct AppListView: View {
             .onReceive(searchViewModel.$searchKeyword) {
                 appList.filter.searchKeyword = $0
             }
-            .onReceive(searchViewModel.$searchScopeIndex) {
+            // [Fork] Drop the initial replay of the published value, otherwise the
+            // restored scope would be reset to .all every time the view appears.
+            .onReceive(searchViewModel.$searchScopeIndex.dropFirst()) {
                 appList.activeScope = Scope(rawValue: $0) ?? .all
             }
             .introspect(.viewController, on: .iOS(.v14, .v15, .v16, .v17, .v18)) { viewController in
@@ -487,6 +489,8 @@ struct AppListView: View {
         searchController.searchBar.delegate = searchViewModel
         searchController.searchBar.showsScopeBar = true
         searchController.searchBar.scopeButtonTitles = Scope.allCases.map { $0.localizedShortName }
+        // [Fork] Reflect the restored scope in the scope bar.
+        searchController.searchBar.selectedScopeButtonIndex = appList.activeScope.rawValue
         searchController.searchBar.autocapitalizationType = .none
         searchController.searchBar.autocorrectionType = .no
 

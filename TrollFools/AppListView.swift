@@ -33,8 +33,12 @@ struct AppListView: View {
     @AppStorage("isWarningHidden")
     var isWarningHidden: Bool = false
 
+    // [Fork] Set to false to remove the advertisement section entirely.
+    private static let advertisementsDisabled = true
+
     var shouldShowAdvertisement: Bool {
-        !isAdvertisementHidden &&
+        !Self.advertisementsDisabled &&
+            !isAdvertisementHidden &&
             !appList.filter.isSearching &&
             !appList.filter.showPatchedOnly &&
             !appList.isRebuildNeeded &&

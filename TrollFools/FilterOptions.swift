@@ -8,6 +8,9 @@
 import Foundation
 
 struct FilterOptions: Hashable {
+    // [Fork] UserDefaults key used to persist the "show patched only" toggle.
+    static let showPatchedOnlyDefaultsKey = "FilterOptions.showPatchedOnly"
+
     var searchKeyword = ""
     var showPatchedOnly = false
 

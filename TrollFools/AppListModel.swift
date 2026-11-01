@@ -74,6 +74,16 @@ final class AppListModel: ObservableObject {
 
     init(selectorURL: URL? = nil) {
         self.selectorURL = selectorURL
+
+        // [Fork] Restore the persisted filter state, except in selector mode
+        // where only the full app list makes sense.
+        if !isSelectorMode,
+           let persistedValue = UserDefaults.standard
+           .object(forKey: FilterOptions.showPatchedOnlyDefaultsKey) as? Bool
+        {
+            filter.showPatchedOnly = persistedValue
+        }
+
         reload()
 
         Publishers.CombineLatest(
@@ -85,6 +95,22 @@ final class AppListModel: ObservableObject {
             self?.performFilter()
         }
         .store(in: &cancellables)
+
+        // [Fork] Persist the "show patched only" toggle so it survives relaunches.
+        $filter
+            .map { $0.showPatchedOnly }
+            .removeDuplicates()
+            .sink { [weak self] showPatchedOnly in
+                // Never let the selector-mode instance overwrite the stored value.
+                guard let self = self, !self.isSelectorMode else {
+                    return
+                }
+                UserDefaults.standard.set(
+                    showPatchedOnly,
+                    forKey: FilterOptions.showPatchedOnlyDefaultsKey
+                )
+            }
+            .store(in: &cancellables)
 
         applicationChanged
             .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: true)

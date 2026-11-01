@@ -63,13 +63,19 @@ jobs:
         run: |
           make package
           cp packages/*.tipa .
-          find .theos/obj -name "*.dSYM" -exec cp -r {} . \;
+          mkdir -p dSYM
+          find .theos/obj -name "*.dSYM" -exec cp -r {} dSYM/ \;
 
       - name: Upload TIPA
         uses: actions/upload-artifact@v4
         with:
-          name: TrollFools-${{ env.VERSION }}
-          path: |
-            *.tipa
-            *.dSYM
+          name: TrollFools-tipa-${{ env.VERSION }}
+          path: "*.tipa"
           if-no-files-found: error
+
+      - name: Upload dSYM
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrollFools-dSYM-${{ env.VERSION }}
+          path: dSYM
+          if-no-files-found: warn
